@@ -1,0 +1,41 @@
+// Static JXA; all user/recruiter values arrive as JSON data, never script source.
+function run(argv) {
+  var input = JSON.parse(argv[0]);
+  var app = Application('Calendar');
+  var calendars = app.calendars();
+  if (input.action === 'calendars') return JSON.stringify(calendars.map(function(c) { return { id: 'name:' + c.name(), name: c.name(), writable: c.writable() }; }));
+  var selected = calendars.filter(function(c) { return 'name:' + c.name() === input.calendarId; });
+  if (selected.length !== 1) throw new Error('所选 Apple 日历不存在，请重新选择。');
+  var calendar = selected[0];
+  if (input.action === 'create' && !calendar.writable()) throw new Error('所选日历只读，请选择可写日历。');
+  var start = new Date(input.start), end = new Date(input.end);
+  // Calendar persists whole seconds, so compare the same precision on retries.
+  start.setMilliseconds(0); end.setMilliseconds(0);
+  var events = calendar.events.whose({ _and: [{ startDate: { _lessThan: end } }, { endDate: { _greaterThan: start } }] })();
+  var marker = '[AI直聘:' + input.key + ']';
+  var existing = null;
+  var existingEvent = null;
+  var busy = events.map(function(e) {
+    var description = e.description() || '';
+    if (description.indexOf(marker) >= 0) { existingEvent = e; existing = { uid: e.uid(), start: e.startDate().toISOString(), end: e.endDate().toISOString() }; }
+    return { start: e.startDate().toISOString(), end: e.endDate().toISOString() };
+  });
+  if (input.action === 'busy') return JSON.stringify({ busy: busy });
+  if (input.action !== 'create') throw new Error('不支持的日历动作');
+  function ensureReminders(event) {
+    var current = event.displayAlarms().map(function(alarm) { return alarm.triggerInterval(); });
+    input.reminders.forEach(function(minutes) { if (current.indexOf(-minutes) < 0) event.displayAlarms.push(app.DisplayAlarm({ triggerInterval: -minutes })); });
+    var actual = event.displayAlarms().map(function(alarm) { return alarm.triggerInterval(); });
+    if (input.reminders.some(function(minutes) { return actual.indexOf(-minutes) < 0; })) throw new Error('日历事件已存在，但提醒尚未全部写入，请核对日历后重试。');
+  }
+  if (existing) {
+    if (existing.start !== start.toISOString() || existing.end !== end.toISOString()) throw new Error('该邀约已存在其他时间的日历事件，请本人核对。');
+    ensureReminders(existingEvent);
+    return JSON.stringify({ status: 'existing', event: existing });
+  }
+  if (busy.length) throw new Error('所选日历时间冲突，请重新安排。');
+  var event = app.Event({ summary: input.title, startDate: start, endDate: end, description: marker + '\n' + input.description });
+  calendar.events.push(event);
+  ensureReminders(event);
+  return JSON.stringify({ status: 'created', event: { uid: event.uid(), start: event.startDate().toISOString(), end: event.endDate().toISOString() } });
+}

@@ -1,0 +1,14 @@
+{
+  "enabled": false,
+  "loginRequested": false,
+  "browserTransport": "playwright",
+  "browserMode": "visible",
+  "intervalSeconds": 120,
+  "maxRepliesPerCycle": 2,
+  "cliPath": "codex",
+  "modelMode": "cli-default",
+  "scopes": [],
+  "candidateName": "",
+  "targetCities": [],
+  "targetRoles": []
+}

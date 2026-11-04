@@ -1,0 +1,64 @@
+// Client-safe (no node). Deterministic "is this CV good enough to score?" signal —
+// ZERO tokens. Advisory only: it drives a green-check vs amber hint, NEVER blocks
+// saving (the minimal-CV principle: even a rough parse is enough for a first score).
+
+export type CvReadiness = { scoreable: boolean; words: number; hasExperience: boolean; hasSkills: boolean; hint?: string };
+
+export function cvReadiness(md: string): CvReadiness {
+  const text = (md || "").trim();
+  // Readiness is a length heuristic, not a linguistic word count: count each
+  // Han character as one word-equivalent, plus the remaining whitespace words.
+  // This keeps Latin-only counts unchanged and handles Chinese without spaces.
+  const hanCharacters = text.match(/\p{Script=Han}/gu)?.length ?? 0;
+  const remaining = text.replace(/\p{Script=Han}/gu, " ").trim();
+  const words = hanCharacters + (remaining ? remaining.split(/\s+/).length : 0);
+  const hasExperience = /(^|\n)#{1,3}\s*(experience|work|employment|empleo|experiencia|工作经历|工作经验|项目经历)/i.test(text) || /\b(20\d\d)\s*[-–—]\s*(20\d\d|present|now|actualidad|至今)/i.test(text);
+  const hasSkills = /(^|\n)#{1,3}\s*(skills|technologies|competenc|habilidad|专业技能|技能)/i.test(text);
+  const scoreable = words >= 80 && (hasExperience || hasSkills || words >= 200);
+  let hint: string | undefined;
+  if (!scoreable) hint = words < 40 ? "简历内容较短，补充工作经历可提升岗位匹配效果（仍可直接保存）。" : "简历内容仍需补充，添加一两段工作经历可提升匹配效果（仍可直接保存）。";
+  return { scoreable, words, hasExperience, hasSkills, hint };
+}
+
+// ── CV ingest stream markers (parallel to the <<act:>>/<<offer:>> envelopes) ──
+export type CvSeed = { title?: string; roles?: string[]; location?: string };
+export type CvIngestResult = { markdown: string; seed: CvSeed | null; error: string | null; trace: string };
+
+/** Parse the full accumulated ingest stream text into its parts. Tolerant: a
+ *  still-streaming buffer just yields partial markdown + the pre-start trace. */
+export function parseCvStream(buf: string): CvIngestResult {
+  const errM = buf.match(/<<cv:error>>\s*(\{[^}]*\})/);
+  if (errM) {
+    let reason = "unreadable";
+    try {
+      reason = JSON.parse(errM[1]).reason || reason;
+    } catch {
+      /* keep default */
+    }
+    return { markdown: "", seed: null, error: reason, trace: buf.split("<<cv:error>>")[0].trim() };
+  }
+
+  const start = buf.indexOf("<<cv:start>>");
+  const trace = (start === -1 ? buf : buf.slice(0, start)).replace(/<<cv:[a-z]+>>.*$/s, "").trim();
+  if (start === -1) return { markdown: "", seed: null, error: null, trace };
+
+  const afterStart = buf.slice(start + "<<cv:start>>".length);
+  const end = afterStart.indexOf("<<cv:end>>");
+  const markdown = (end === -1 ? afterStart : afterStart.slice(0, end)).replace(/^\s*\n/, "").trimEnd();
+
+  let seed: CvSeed | null = null;
+  const seedM = buf.match(/<<cv:seed>>\s*(\{[\s\S]*?\})/);
+  if (seedM) {
+    try {
+      const j = JSON.parse(seedM[1]);
+      seed = {
+        title: typeof j.title === "string" ? j.title : undefined,
+        roles: Array.isArray(j.roles) ? j.roles.filter((r: unknown): r is string => typeof r === "string").slice(0, 6) : undefined,
+        location: typeof j.location === "string" ? j.location : undefined,
+      };
+    } catch {
+      /* malformed seed → ignore */
+    }
+  }
+  return { markdown, seed, error: null, trace };
+}
