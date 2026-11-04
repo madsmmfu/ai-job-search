@@ -31,3 +31,9 @@ Copy the example profile and BOSS configuration locally, provide your own CV, an
 ## 项目来源 / Attribution
 
 Upstream: career-ops-hq/career-ops. The original authorship and MIT license are preserved in [LICENSE](LICENSE), the source files, and [README.upstream.md](README.upstream.md). Local Chinese UI and browser-assistance modifications are included as a source snapshot, without the original checkout’s Git history. See [SANITIZATION.md](SANITIZATION.md) for the publication scope.
+
+## 开源协议与署名 / License and attribution
+
+本项目采用 [MIT License](LICENSE)，保留 Santiago Fernández de Valderrama 的上游版权声明，并添加 madsmmfu 的本地修改署名。工作台全局页脚展示 `AI Job Search · madsmmfu` 项目水印及仓库链接；完整来源说明见 [NOTICE.md](NOTICE.md)。
+
+Licensed under the [MIT License](LICENSE), retaining the upstream copyright notice and crediting madsmmfu for local modifications. The workbench footer displays the project attribution and repository link. See [NOTICE.md](NOTICE.md) for provenance and third-party attribution.

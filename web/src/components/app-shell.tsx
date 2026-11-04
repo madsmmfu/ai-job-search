@@ -31,8 +31,11 @@ export function AppShell({ children, followupsEnabled }: { children: React.React
         <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col overflow-y-auto border-r border-border bg-surface/30 p-4 md:flex">
           <Link href="/" className="mb-8 flex items-center gap-2.5 px-1">
             <CoMark size={32} />
-            <span className={`${instrumentSerif.className} relative -top-px text-2xl font-normal tracking-tight text-landing`}>
-              AI直聘
+            <span className="flex flex-col">
+              <span className={`${instrumentSerif.className} relative -top-px text-2xl font-normal tracking-tight text-landing`}>
+                AI直聘
+              </span>
+              <span className="text-[10px] text-muted">by madsmmfu</span>
             </span>
           </Link>
           <nav className="flex flex-col gap-1">
@@ -77,7 +80,19 @@ export function AppShell({ children, followupsEnabled }: { children: React.React
             </div>
           </div>
         </aside>
-        <main className="flex-1 overflow-x-hidden">{children}</main>
+        <main className="flex-1 overflow-x-hidden">
+          {children}
+          <footer className="border-t border-border px-6 pb-24 pt-4 text-center text-xs text-muted md:pb-6">
+            <a
+              href="https://github.com/madsmmfu/ai-job-search"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground"
+            >
+              AI Job Search · madsmmfu
+            </a>
+          </footer>
+        </main>
         <AssistantConsole />
         <BackToTop />
         <FirstScoreView />
