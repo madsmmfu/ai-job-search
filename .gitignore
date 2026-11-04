@@ -291,3 +291,7 @@ web/out/
 **/storage-state*.json
 **/cookies*.json
 **/browser-profile/
+
+# Reviewed installation lock and fictional, upstream example.
+!/package-lock.json
+!/examples/dual-track-engineer-instructor/cv.md
